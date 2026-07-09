@@ -1,46 +1,144 @@
 # OmniStudent
 
-A web-based application for university students who need help interactively managing their time between school, work, and personal life.
+OmniStudent is a web-based application that helps university students manage their time across school, work, and personal life. It combines an automated calendar that intelligently schedules study sessions, a priority task board, and an emergency rescheduler that rebooks missed study time when life gets in the way.
 
-## Project Status
+Built for CSCI3300 Software Engineering (University of North Georgia), Dr. Jason Porter.
 
-Upcoming — CSCI3300 Software Engineering course project, proposed 06/05/2026.
+## Features
+
+### Smart Schedule Sync
+- Enter class times, work shifts, and assignment deadlines.
+- OmniStudent scans your calendar for free time and automatically generates conflict-free study sessions, prioritizing the work due soonest.
+
+### Priority Task Board
+- Assignments are ranked **high / medium / low** based on a blend of urgency (days until due), grade weight, and estimated effort.
+- See at a glance what deserves your attention first.
+
+### Emergency Block Rescheduler
+- When something unexpected comes up (a sick child, a called-in shift), block out the time.
+- OmniStudent marks any overlapping study sessions as **missed** and automatically reschedules them into the next available free slots.
+
+### Additional Capabilities
+- **Account system** — register and log in; passwords are hashed, never stored in plaintext.
+- **Course & grade tracking** — record current vs. target grades per course.
+- **Dashboard** — a single view of upcoming assignments, the week's schedule, and total scheduled study time.
+- **Calendar** — color-coded events by type (class, work, study, personal, emergency).
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React (Vite), React Router, Axios |
+| Backend | Python, FastAPI, SQLAlchemy |
+| Database | SQLite (dev) — swappable to PostgreSQL for production |
+| Auth | JWT tokens, bcrypt password hashing |
+
+## Getting Started
+
+### Prerequisites
+- [Python 3.11+](https://www.python.org/)
+- [Node.js 18+](https://nodejs.org/)
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/greyyk/OmniStudent.git
+cd OmniStudent
+```
+
+### 2. Set up the backend
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate        # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+The API runs at `http://localhost:8000`. Interactive docs (Swagger UI) are available at `http://localhost:8000/docs`.
+
+### 3. Set up the frontend
+In a new terminal:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+The app runs at `http://localhost:5173`. The Vite dev server proxies `/api` requests to the backend, so both servers must be running.
+
+### 4. (Optional) Load demo data
+```bash
+cd backend
+python seed.py
+```
+Creates a demo account (`demo@omnistudent.app` / `demo1234`) with sample courses, assignments, and events so you can try the features immediately.
+
+## Project Structure
+```
+OmniStudent/
+├── backend/
+│   ├── main.py              # FastAPI app entry point
+│   ├── config.py            # Settings (DB URL, JWT secret, CORS)
+│   ├── database.py          # SQLAlchemy engine + session
+│   ├── models.py            # ORM models (User, Course, Assignment, Event)
+│   ├── schemas.py           # Pydantic request/response schemas
+│   ├── auth.py              # Register, login, JWT, get_current_user
+│   ├── seed.py              # Demo data script
+│   ├── routers/             # API route handlers
+│   │   ├── auth.py
+│   │   ├── courses.py
+│   │   ├── assignments.py
+│   │   ├── events.py
+│   │   ├── schedule.py      # Smart sync, priority board, emergency
+│   │   └── dashboard.py
+│   └── services/            # Feature business logic
+│       ├── scheduler.py     # Smart Schedule Sync
+│       ├── priority.py      # Priority Task Board ranking
+│       └── rescheduler.py   # Emergency Block Rescheduler
+├── frontend/
+│   └── src/
+│       ├── api/client.js    # Axios instance + all API calls
+│       ├── contexts/AuthContext.jsx
+│       ├── pages/           # Login, Dashboard, Calendar, Tasks
+│       └── components/      # NavBar, Calendar, TaskBoard, EmergencyModal
+└── docs/                    # Assignment documentation (proposal, personas, stories)
+```
+
+## API Documentation
+
+Once the backend is running, full interactive API documentation is available at:
+- **Swagger UI:** `http://localhost:8000/docs`
+- **ReDoc:** `http://localhost:8000/redoc`
+
+Key endpoints:
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/auth/register` | Create an account |
+| POST | `/api/auth/login` | Log in |
+| GET/POST | `/api/courses` | List / create courses |
+| GET/POST | `/api/assignments` | List / create assignments |
+| GET/POST | `/api/events` | List / create calendar events |
+| POST | `/api/schedule/generate` | Generate a study schedule |
+| GET | `/api/tasks/prioritized` | Get the priority task board |
+| POST | `/api/emergency/create` | Create an emergency block + reschedule |
+| GET | `/api/dashboard` | Aggregated dashboard data |
+
+## Database
+
+The app uses **SQLite** for development (a single `omnistudent.db` file, zero setup). To switch to **PostgreSQL** for the final submission, set `DATABASE_URL` in `backend/.env`:
+
+```
+DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/omnistudent
+```
+
+SQLAlchemy handles the rest — no code changes needed.
 
 ## Team
 
-- Seth Causey
-- Greyson Kline
-- Samuel Bowen
-- Sarah Ganthier
-- Ronnie Bitzer
+| Member | Role |
+|--------|------|
+| Greyson Kline | Backend lead |
+| Samuel Bowen | Frontend lead |
+| Sarah Ganthier | Frontend |
+| Ronnie Bitzer | Frontend |
+| Seth Causey | Documentation & testing |
 
-Instructor: Dr. Jason Porter
-
-## Vision
-
-For university students who need an application that can help them better interactively manage their time between school, work, and their personal lives, the **OmniStudent** is a web-based application that provides an automated calendar which intelligently schedules study times, tracks grades, due dates, and tests, manages assignment time, creates reminders, and more. It improves students' overall time management at a more personal and interactive level.
-
-Unlike other services or applications, OmniStudent provides an interactive application with features tailored to the schedule of a university student.
-
-## Target Users
-
-- **Ruby — The Overwhelmed Working Student**: A 20-year-old full-time student working part-time at a retail job with a frequently changing schedule. She struggles to keep up with deadlines because her work hours shift with little notice.
-- **David — The Highly Involved Achiever**: A 21-year-old ambitious student juggling a demanding major with clubs, volunteering, and tutoring. He gets frustrated copying the same information across multiple apps and wants a single student-focused view.
-- **Sarah — The Non-Traditional Commuter Student**: A 28-year-old married stay-at-home mom returning to school for a marketing degree, working full-time remotely with a 45-minute commute. She needs strict boundaries between work, parenting, and studying.
-
-## Core Features
-
-- **Smart Schedule Sync** — Enters class times, work shifts, and deadlines, then automatically generates a balanced weekly plan with conflict-free study time and reminders.
-- **Quick Study Mode** — Creates short, focused study sessions (flashcards, summaries, key concepts) when only limited time is available between other commitments.
-- **Priority Task Board** — Ranks assignments by due date, estimated completion time, and grade weight, showing high/medium/low priority with recommended next steps.
-- **Nonacademic Commitment Recommendation** — Compares academic priority with campus events, club meetings, and volunteer activities, and suggests which nonacademic commitments could be moved or reduced.
-- **Emergency Block Rescheduler** — Lets the user block out an unexpected personal event (such as a sick child), then automatically reschedules missed study sessions into alternative free times like lunch breaks or post-bedtime hours.
-- **Automated Status Modifier** — Automatically marks interrupted study sessions as missed when an emergency block overlaps them, so the user doesn't have to edit each event manually.
-
-Additional capabilities covered by user stories include grade-goal planning (current vs. target grades), weekly workload overview, and a weekly view that helps users spot overcommitment before it becomes stressful.
-
-## Documentation
-
-- [`docs/Assignments/Assignment 1 - Proposal.md`](docs/Assignments/Assignment%201%20-%20Proposal.md) — Project proposal and Moore's Vision statement.
-- [`docs/Assignments/Assignment 2A - Personas & Scenarios.md`](docs/Assignments/Assignment%202A%20-%20Personas%20%26%20Scenarios.md) — User personas and scenarios.
-- [`docs/Assignments/Assignment 2b - Stories & Feature List.md`](docs/Assignments/Assignment%202b%20-%20Stories%20%26%20Feature%20List.md) — User stories and feature list.
+Instructor: Dr. Jason Porter, University of North Georgia
