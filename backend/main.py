@@ -14,6 +14,7 @@ from config import settings
 from database import Base, engine
 # Import models so create_all() sees them.
 import models  # noqa: F401
+from routers import assignments, auth, courses, dashboard, events, schedule
 
 Base.metadata.create_all(bind=engine)
 
@@ -31,6 +32,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router)
+app.include_router(courses.router)
+app.include_router(assignments.router)
+app.include_router(events.router)
+app.include_router(schedule.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/", tags=["health"])
