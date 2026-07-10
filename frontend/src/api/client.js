@@ -23,4 +23,37 @@ export const auth = {
   me: () => client.get('/auth/me'),
 }
 
+// ---- Courses ----
+export const courses = {
+  list: () => client.get('/courses'),
+  create: (data) => client.post('/courses', data),
+  update: (id, data) => client.put(`/courses/${id}`, data),
+  remove: (id) => client.delete(`/courses/${id}`),
+}
+
+// ---- Assignments ----
+export const assignments = {
+  list: (courseId) => client.get('/assignments', { params: { course_id: courseId } }),
+  create: (data) => client.post('/assignments', data),
+  update: (id, data) => client.put(`/assignments/${id}`, data),
+  remove: (id) => client.delete(`/assignments/${id}`),
+}
+
+// ---- Events ----
+export const events = {
+  list: (start, end) => client.get('/events', { params: { start, end } }),
+  create: (data) => client.post('/events', data),
+  update: (id, data) => client.put(`/events/${id}`, data),
+  remove: (id) => client.delete(`/events/${id}`),
+}
+
+// ---- Features ----
+export const features = {
+  generateSchedule: (daysAhead = 7) =>
+    client.post('/schedule/generate', null, { params: { days_ahead: daysAhead } }),
+  prioritizedTasks: () => client.get('/tasks/prioritized'),
+  createEmergency: (data) => client.post('/emergency/create', data),
+  dashboard: () => client.get('/dashboard'),
+}
+
 export default client
