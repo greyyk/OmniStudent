@@ -3,6 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import NavBar from './components/NavBar'
 import LoginPage from './pages/LoginPage'
+import DashboardPage from './pages/DashboardPage'
+import CalendarPage from './pages/CalendarPage'
+import TasksPage from './pages/TasksPage'
 
 function Protected({ children }) {
   const { user, loading } = useAuth()
@@ -25,6 +28,22 @@ export default function App() {
         element={
           <Protected>
             <DashboardPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/calendar"
+        element={
+          <Protected>
+            <CalendarPage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/tasks"
+        element={
+          <Protected>
+            <TasksPage />
           </Protected>
         }
       />

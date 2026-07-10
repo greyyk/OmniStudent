@@ -35,6 +35,12 @@ export default function NavBar() {
       <NavLink to="/" style={linkStyle} end>
         Dashboard
       </NavLink>
+      <NavLink to="/calendar" style={linkStyle}>
+        Calendar
+      </NavLink>
+      <NavLink to="/tasks" style={linkStyle}>
+        Tasks
+      </NavLink>
       <div style={{ marginTop: 'auto', paddingTop: '1rem' }}>
         <p className="muted" style={{ fontSize: '0.85rem' }}>
           {user?.name}
