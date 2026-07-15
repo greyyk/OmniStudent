@@ -1,5 +1,4 @@
-// Simple calendar: events grouped by day, color-coded by type.
-// Global feature & task state. Stores the tasks in localStorage so a page refresh keeps the tasks.
+// Global feature/ task state. Stores the tasks in localStorage so a page refresh keeps the tasks.
 import { createContext, useContext, useEffect, useState } from 'react'
 import { tasks } from '../api/client'
 
