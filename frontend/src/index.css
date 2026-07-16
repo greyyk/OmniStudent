@@ -88,6 +88,17 @@ label {
   margin-bottom: 1.5rem;
 }
 
+.page h2 {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.page h3 {
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  text-transform: capitalize;
+}
+
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -103,6 +114,12 @@ label {
 .grid-2 {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
+.grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.grid-wide {
+  grid-column: 1 / -1;
+}
 
 .badge {
   display: inline-block;
@@ -115,6 +132,11 @@ label {
 .badge.high { background: var(--high); color: white; }
 .badge.medium { background: var(--medium); color: #1e293b; }
 .badge.low { background: var(--low); color: #1e293b; }
+.badge.class { background: #38bdf8; color: #0f172a; }
+.badge.work { background: #f97316; color: #111827; }
+.badge.study { background: #a78bfa; color: #111827; }
+.badge.personal { background: #2dd4bf; color: #0f172a; }
+.badge.emergency { background: var(--high); color: white; }
 
 .muted { color: var(--text-dim); }
 .row { display: flex; gap: 0.75rem; align-items: center; }
@@ -122,3 +144,77 @@ label {
 .col { display: flex; flex-direction: column; gap: 0.75rem; }
 .mt { margin-top: 1rem; }
 .error { color: var(--high); font-size: 0.9rem; }
+
+.list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.list-item,
+.event-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem;
+}
+
+.list-item select {
+  width: auto;
+  min-width: 140px;
+}
+
+.stat-card {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.stat-card strong {
+  font-size: 2rem;
+}
+
+.task-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.task-column {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+}
+
+.event-card {
+  border-left: 4px solid var(--primary);
+}
+
+.event-card.class { border-left-color: #38bdf8; }
+.event-card.work { border-left-color: #f97316; }
+.event-card.study { border-left-color: #a78bfa; }
+.event-card.personal { border-left-color: #2dd4bf; }
+.event-card.emergency { border-left-color: var(--high); }
+
+@media (max-width: 760px) {
+  .app-layout {
+    flex-direction: column;
+  }
+
+  .app-layout nav {
+    width: 100% !important;
+  }
+
+  .page {
+    padding: 1rem;
+  }
+
+  .row,
+  .list-item,
+  .event-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -5,7 +5,12 @@ directory). Defaults are tuned for local SQLite development — need to swap
 DATABASE_URL to a Postgres connection string for the final submission.
 """
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+ENV_FILE = Path(__file__).with_name(".env")
 
 
 class Settings(BaseSettings):
@@ -21,7 +26,7 @@ class Settings(BaseSettings):
     # CORS — the Vite dev server origin
     frontend_origin: str = "http://localhost:5173"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8")
 
 
 settings = Settings()
