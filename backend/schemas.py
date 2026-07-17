@@ -92,6 +92,7 @@ class AssignmentCreate(BaseModel):
 
 
 class AssignmentUpdate(BaseModel):
+    course_id: int | None = None
     title: str | None = None
     description: str | None = None
     due_date: datetime | None = None

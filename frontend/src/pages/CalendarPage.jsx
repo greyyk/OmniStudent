@@ -6,7 +6,7 @@ import Calendar from "../components/Calendar";
 
 const EVENT_TYPES = ["class", "work", "personal"];
 
-function EmergencyModal({ onClose }) {
+function EmergencyModal({ onClose, onSuccess }) {
   function localNow(offsetHours = 0) {
     const d = new Date();
     d.setMinutes(0, 0, 0);
@@ -77,7 +77,7 @@ function EmergencyModal({ onClose }) {
               <p className="mb">No study sessions overlapped this block.</p>
             )}
             <div className="modal-actions">
-              <button onClick={onClose}>Done</button>
+              <button onClick={() => { onSuccess?.(); onClose(); }}>Done</button>
             </div>
           </>
         ) : (
@@ -150,7 +150,16 @@ export default function CalendarPage() {
   function load() {
     setLoading(true);
     setError("");
-    Promise.all([events.list(), coursesApi.list()])
+    // Only load events within a reasonable window so the calendar doesn't
+    // accumulate stale history forever.
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 14);
+    Promise.all([
+      events.list(start.toISOString(), end.toISOString()),
+      coursesApi.list(),
+    ])
       .then(([evRes, cRes]) => {
         setEventList(evRes.data);
         setCourseList(cRes.data);
@@ -195,6 +204,11 @@ export default function CalendarPage() {
     } catch (err) {
       setError(err.response?.data?.detail || "Could not generate schedule");
     }
+  }
+
+  function handleEmergencySuccess() {
+    load();
+    setGenMsg("");
   }
 
   return (
@@ -285,7 +299,10 @@ export default function CalendarPage() {
       )}
 
       {showEmergency && (
-        <EmergencyModal onClose={() => setShowEmergency(false)} />
+        <EmergencyModal
+          onClose={() => setShowEmergency(false)}
+          onSuccess={handleEmergencySuccess}
+        />
       )}
     </div>
   );

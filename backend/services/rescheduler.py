@@ -30,6 +30,7 @@ def create_emergency(
         status="scheduled",
     )
     db.add(emergency)
+    db.flush()  # so emergency.id is populated and visible to the overlap query
 
     # Study sessions that overlap the emergency block -> mark missed.
     overlapping = (
@@ -49,13 +50,17 @@ def create_emergency(
         missed.append(study)
 
     # Existing busy times after the emergency, for finding free slots.
+    # Exclude missed sessions (they're already accounted for) and the emergency
+    # itself so its tail doesn't block the first available slot.
     horizon = emergency.end + timedelta(days=7)
     future_events = (
         db.query(Event)
         .filter(
             Event.user_id == user.id,
+            Event.status == "scheduled",
             Event.end >= emergency.end,
             Event.start <= horizon,
+            Event.id != emergency.id,
         )
         .all()
     )
@@ -63,7 +68,13 @@ def create_emergency(
 
     rescheduled: list[Event] = []
     for study in missed:
-        duration = study.end - study.start
+        # Only rebook the portion that was actually eaten by the emergency,
+        # not the full original block length.
+        overlap_start = max(study.start, emergency.start)
+        overlap_end = min(study.end, emergency.end)
+        duration = overlap_end - overlap_start
+        if duration.total_seconds() <= 0:
+            continue
         slot = find_free_slot(busy, emergency.end, horizon, duration)
         if slot is None:
             continue

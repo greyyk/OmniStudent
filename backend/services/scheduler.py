@@ -30,6 +30,17 @@ def generate_schedule(user: User, db: Session, days_ahead: int = 7) -> list[Even
         now = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     horizon = now + timedelta(days=days_ahead)
 
+    # Clear prior system-generated study sessions so re-running doesn't stack
+    # duplicate "Study: X" events on the calendar. Manual study events
+    # (system_generated=False) are preserved.
+    db.query(Event).filter(
+        Event.user_id == user.id,
+        Event.type == "study",
+        Event.system_generated == True,  # noqa: E712
+        Event.status == "scheduled",
+    ).delete(synchronize_session=False)
+    db.flush()
+
     events = (
         db.query(Event)
         .filter(
