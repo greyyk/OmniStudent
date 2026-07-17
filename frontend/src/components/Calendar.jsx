@@ -34,6 +34,8 @@ function fmtDay(iso) {
 export default function Calendar({
   events = [],
   emptyMessage = "No events yet.",
+  onDeleteEvent,
+  onToggleStudy,
 }) {
   // Group events by their start date, then sort each day ascending by time.
   const byDay = useMemo(() => {
@@ -84,6 +86,37 @@ export default function Calendar({
                       <span className="tag done">done</span>
                     )}
                     <span className="event-type">{m.label}</span>
+                    {onToggleStudy && ev.type === "study" && ev.status === "scheduled" && (
+                      <button
+                        type="button"
+                        className="secondary event-action"
+                        title="Mark study session complete"
+                        onClick={() => onToggleStudy(ev, "completed")}
+                      >
+                        ✓ done
+                      </button>
+                    )}
+                    {onToggleStudy && ev.type === "study" && ev.status === "completed" && (
+                      <button
+                        type="button"
+                        className="secondary event-action"
+                        title="Mark as not yet done"
+                        onClick={() => onToggleStudy(ev, "scheduled")}
+                      >
+                        undo
+                      </button>
+                    )}
+                    {onDeleteEvent && (
+                      <button
+                        type="button"
+                        className="danger event-delete"
+                        title="Delete event"
+                        aria-label={`Delete ${ev.title}`}
+                        onClick={() => onDeleteEvent(ev)}
+                      >
+                        ×
+                      </button>
+                    )}
                   </li>
                 );
               })}

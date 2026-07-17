@@ -194,6 +194,27 @@ export default function CalendarPage() {
     }
   }
 
+  async function deleteEvent(event) {
+    if (!confirm(`Delete "${event.title}"?`)) return;
+    setError("");
+    try {
+      await events.remove(event.id);
+      load();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Could not delete event");
+    }
+  }
+
+  async function toggleStudy(event, status) {
+    setError("");
+    try {
+      await events.update(event.id, { status });
+      load();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Could not update event");
+    }
+  }
+
   async function generateSchedule() {
     setGenMsg("");
     setError("");
@@ -294,6 +315,8 @@ export default function CalendarPage() {
       ) : (
         <Calendar
           events={eventList}
+          onDeleteEvent={deleteEvent}
+          onToggleStudy={toggleStudy}
           emptyMessage="No events yet. Add one above, or generate a study schedule."
         />
       )}

@@ -94,9 +94,10 @@ export default function TasksPage() {
     }
   }
 
-  async function deleteCourse(id) {
+  async function deleteCourse(course) {
+    if (!confirm(`Delete course "${course.code} · ${course.name}"? Assignments in this course will also be removed.`)) return;
     try {
-      await coursesApi.remove(id);
+      await coursesApi.remove(course.id);
       await loadData();
       setRefreshKey((key) => key + 1);
     } catch {
@@ -143,9 +144,10 @@ export default function TasksPage() {
     }
   }
 
-  async function deleteAssignment(id) {
+  async function deleteAssignment(assignment) {
+    if (!confirm(`Delete assignment "${assignment.title}"?`)) return;
     try {
-      await assignmentsApi.remove(id);
+      await assignmentsApi.remove(assignment.id);
       setAssignmentList((list) => list.filter((item) => item.id !== id));
       setRefreshKey((key) => key + 1);
     } catch {
@@ -177,7 +179,7 @@ export default function TasksPage() {
                     {course.current_grade != null ? `${course.current_grade}%` : "—"}
                     {course.target_grade != null ? ` → ${course.target_grade}%` : ""}
                   </span>
-                  <button className="danger" onClick={() => deleteCourse(course.id)}>
+                  <button className="danger" onClick={() => deleteCourse(course)}>
                     Delete
                   </button>
                 </div>
@@ -353,7 +355,7 @@ export default function TasksPage() {
                     <option value="in_progress">in_progress</option>
                     <option value="done">done</option>
                   </select>
-                  <button className="danger" onClick={() => deleteAssignment(assignment.id)}>
+                  <button className="danger" onClick={() => deleteAssignment(assignment)}>
                     Delete
                   </button>
                 </div>
