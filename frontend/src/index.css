@@ -265,6 +265,43 @@ label {
   font-size: 2rem;
 }
 
+.workload-alert {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--medium);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.workload-alert.overloaded {
+  border-left-color: var(--high);
+}
+
+.workload-alert h2 {
+  margin-bottom: 0.35rem;
+}
+
+.workload-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  min-width: 16rem;
+}
+
+.workload-details span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+}
+
 .calendar .legend {
   display: flex;
   flex-wrap: wrap;
@@ -573,6 +610,7 @@ label {
   .list-item,
   .event-card,
   .event,
+  .workload-alert,
   .task-card,
   .modal-actions {
     align-items: stretch;
@@ -585,5 +623,10 @@ label {
 
   .list-item select {
     width: 100%;
+  }
+
+  .workload-details {
+    justify-content: flex-start;
+    min-width: 0;
   }
 }

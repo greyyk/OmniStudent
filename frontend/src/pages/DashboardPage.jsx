@@ -56,6 +56,7 @@ export default function DashboardPage() {
   if (!data) return <div className="page">Loading…</div>;
 
   const studyHours = Math.round((data.study_minutes_this_week / 60) * 10) / 10;
+  const workload = data.workload;
 
   return (
     <div className="page">
@@ -74,7 +75,29 @@ export default function DashboardPage() {
           <span className="muted">Scheduled study this week</span>
           <strong>{studyHours}h</strong>
         </section>
+        <section className="card stat-card">
+          <span className="muted">Weekly workload</span>
+          <strong>{workload.total_hours}h</strong>
+        </section>
       </div>
+
+      {workload.warning && (
+        <section className={`workload-alert ${workload.status}`}>
+          <div>
+            <h2>
+              {workload.status === "overloaded"
+                ? "You may be overloaded this week"
+                : "This week is getting busy"}
+            </h2>
+            <p>{workload.warning}</p>
+          </div>
+          <div className="workload-details">
+            <span>{workload.scheduled_hours}h scheduled</span>
+            <span>{workload.assignment_hours}h due</span>
+            <span>{workload.remaining_assignment_hours}h still needed</span>
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-2">
         <section className="card">
