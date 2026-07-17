@@ -20,11 +20,7 @@ def list_assignments(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = (
-        db.query(Assignment)
-        .join(Course)
-        .filter(Course.user_id == current_user.id)
-    )
+    query = db.query(Assignment).join(Course).filter(Course.user_id == current_user.id)
     if course_id is not None:
         query = query.filter(Assignment.course_id == course_id)
     return query.order_by(Assignment.due_date).all()
