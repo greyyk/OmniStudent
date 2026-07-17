@@ -412,6 +412,17 @@ label {
   gap: 1rem;
 }
 
+/* Priority board items hold four children (badge / title / due / score),
+   so they stack vertically like a card. The generic .list-item is a
+   horizontal row used elsewhere (dashboard, assignments list) and would
+   cram all four onto one line, which showed up worst on the medium column
+   where titles are longest. */
+.task-board .list-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
 .task-column {
   display: grid;
   align-content: start;
