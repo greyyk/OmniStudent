@@ -61,6 +61,7 @@ export const features = {
     }),
   prioritizedTasks: () => client.get("/tasks/prioritized"),
   createEmergency: (data) => client.post("/emergency/create", data),
+  undoEmergency: (id) => client.post(`/emergency/${id}/undo`),
   dashboard: () => client.get("/dashboard"),
 };
 

@@ -195,10 +195,18 @@ export default function CalendarPage() {
   }
 
   async function deleteEvent(event) {
-    if (!confirm(`Delete "${event.title}"?`)) return;
+    const isEmergency = event.type === "emergency";
+    const msg = isEmergency
+      ? `Remove "${event.title}" and restore any missed study sessions it created?`
+      : `Delete "${event.title}"?`;
+    if (!confirm(msg)) return;
     setError("");
     try {
-      await events.remove(event.id);
+      if (isEmergency) {
+        await features.undoEmergency(event.id);
+      } else {
+        await events.remove(event.id);
+      }
       load();
     } catch (err) {
       setError(err.response?.data?.detail || "Could not delete event");
