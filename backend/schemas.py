@@ -5,9 +5,9 @@ schema. The Read schemas have `from_attributes = True` so the SQL model
 instances can be returned directly from endpoints.
 
 Time handling: the app runs in naive local time throughout. The frontend
-sends datetime-local strings; the backend stores and returns them as-is. 
-This keeps everything consistent on a single machine (the class demo). 
-Any timezone-aware datetime that arrives is stripped to naive so comparisons 
+sends datetime-local strings; the backend stores and returns them as-is.
+This keeps everything consistent on a single machine (the class demo).
+Any timezone-aware datetime that arrives is stripped to naive so comparisons
 don't mix aware/naive values.
 """
 
@@ -92,6 +92,7 @@ class AssignmentCreate(BaseModel):
 
 
 class AssignmentUpdate(BaseModel):
+    course_id: int | None = None
     title: str | None = None
     description: str | None = None
     due_date: datetime | None = None

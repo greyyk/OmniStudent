@@ -53,9 +53,7 @@ def get_dashboard(
         .all()
     )
 
-    courses = (
-        db.query(Course).filter(Course.user_id == current_user.id).all()
-    )
+    courses = db.query(Course).filter(Course.user_id == current_user.id).all()
 
     study_minutes = (
         db.query(Event)

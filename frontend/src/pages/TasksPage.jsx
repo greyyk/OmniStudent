@@ -1,150 +1,193 @@
-import { useEffect, useState } from 'react'
-import { assignments, courses } from '../api/client'
-import PriorityTaskBoard from '../components/PriorityTaskBoard'
+// Tasks page: manage courses and assignments, and view the priority task board.
+import { useEffect, useState } from "react";
+import { assignments as assignmentsApi, courses as coursesApi } from "../api/client";
+import PriorityTaskBoard from "../components/PriorityTaskBoard";
 
 const emptyCourse = {
-  name: '',
-  code: '',
-  current_grade: '',
-  target_grade: '',
-}
+  name: "",
+  code: "",
+  current_grade: "",
+  target_grade: "",
+};
 
 const emptyAssignment = {
-  course_id: '',
-  title: '',
-  description: '',
-  due_date: '',
-  estimated_hours: 1,
-  grade_weight: 10,
-  status: 'todo',
-}
+  course_id: "",
+  title: "",
+  description: "",
+  due_date: "",
+  estimated_hours: "1",
+  grade_weight: "10",
+  status: "todo",
+};
 
 function optionalNumber(value) {
-  return value === '' ? null : Number(value)
+  return value === "" ? null : Number(value);
 }
 
 function dateLabel(value) {
   return new Date(value).toLocaleString([], {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export default function TasksPage() {
-  const [courseList, setCourseList] = useState([])
-  const [assignmentList, setAssignmentList] = useState([])
-  const [courseForm, setCourseForm] = useState(emptyCourse)
-  const [assignmentForm, setAssignmentForm] = useState(emptyAssignment)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [courseList, setCourseList] = useState([]);
+  const [assignmentList, setAssignmentList] = useState([]);
+  const [courseForm, setCourseForm] = useState(emptyCourse);
+  const [assignmentForm, setAssignmentForm] = useState(emptyAssignment);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   async function loadData() {
     try {
-      setLoading(true)
-      setError('')
+      setLoading(true);
+      setError("");
       const [coursesResult, assignmentsResult] = await Promise.all([
-        courses.list(),
-        assignments.list(),
-      ])
-      setCourseList(coursesResult.data)
-      setAssignmentList(assignmentsResult.data)
+        coursesApi.list(),
+        assignmentsApi.list(),
+      ]);
+      setCourseList(coursesResult.data);
+      setAssignmentList(assignmentsResult.data);
       setAssignmentForm((form) => ({
         ...form,
-        course_id: form.course_id || String(coursesResult.data[0]?.id || ''),
-      }))
+        course_id: form.course_id || String(coursesResult.data[0]?.id || ""),
+      }));
     } catch {
-      setError('Could not load courses and assignments')
+      setError("Could not load courses and assignments");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadData()
-  }, [])
+    loadData();
+  }, []);
 
   function courseName(courseId) {
-    const course = courseList.find((item) => item.id === courseId)
-    return course ? `${course.code} - ${course.name}` : 'Course'
+    const course = courseList.find((item) => item.id === courseId);
+    return course ? `${course.code} · ${course.name}` : "Course";
   }
 
   async function createCourse(event) {
-    event.preventDefault()
-    setSaving(true)
-    setError('')
+    event.preventDefault();
+    setSaving(true);
+    setError("");
     try {
-      await courses.create({
+      await coursesApi.create({
         name: courseForm.name,
         code: courseForm.code,
         current_grade: optionalNumber(courseForm.current_grade),
         target_grade: optionalNumber(courseForm.target_grade),
-      })
-      setCourseForm(emptyCourse)
-      await loadData()
+      });
+      setCourseForm(emptyCourse);
+      await loadData();
+      setRefreshKey((key) => key + 1);
     } catch {
-      setError('Could not create course')
+      setError("Could not create course");
     } finally {
-      setSaving(false)
+      setSaving(false);
+    }
+  }
+
+  async function deleteCourse(course) {
+    if (!confirm(`Delete course "${course.code} · ${course.name}"? Assignments in this course will also be removed.`)) return;
+    try {
+      await coursesApi.remove(course.id);
+      await loadData();
+      setRefreshKey((key) => key + 1);
+    } catch {
+      setError("Could not delete course");
     }
   }
 
   async function createAssignment(event) {
-    event.preventDefault()
-    setSaving(true)
-    setError('')
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    if (!assignmentForm.course_id) {
+      setError("Add a course before creating assignments.");
+      setSaving(false);
+      return;
+    }
     try {
-      await assignments.create({
+      await assignmentsApi.create({
         ...assignmentForm,
         course_id: Number(assignmentForm.course_id),
         estimated_hours: Number(assignmentForm.estimated_hours),
         grade_weight: Number(assignmentForm.grade_weight),
-      })
+      });
       setAssignmentForm({
         ...emptyAssignment,
         course_id: assignmentForm.course_id,
-      })
-      await loadData()
-      setRefreshKey((key) => key + 1)
+      });
+      await loadData();
+      setRefreshKey((key) => key + 1);
     } catch {
-      setError('Could not create assignment')
+      setError("Could not create assignment");
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   async function changeStatus(assignment, status) {
     try {
-      await assignments.update(assignment.id, { status })
-      await loadData()
-      setRefreshKey((key) => key + 1)
+      await assignmentsApi.update(assignment.id, { status });
+      await loadData();
+      setRefreshKey((key) => key + 1);
     } catch {
-      setError('Could not update assignment')
+      setError("Could not update assignment");
     }
   }
 
-  async function deleteAssignment(id) {
+  async function deleteAssignment(assignment) {
+    if (!confirm(`Delete assignment "${assignment.title}"?`)) return;
     try {
-      await assignments.remove(id)
-      setAssignmentList((list) => list.filter((item) => item.id !== id))
-      setRefreshKey((key) => key + 1)
+      await assignmentsApi.remove(assignment.id);
+      setAssignmentList((list) => list.filter((item) => item.id !== id));
+      setRefreshKey((key) => key + 1);
     } catch {
-      setError('Could not delete assignment')
+      setError("Could not delete assignment");
     }
   }
 
-  if (loading) return <div className="page">Loading tasks...</div>
+  if (loading) return <div className="page">Loading tasks...</div>;
 
   return (
     <div className="page">
       <h1>Tasks</h1>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error mb">{error}</p>}
 
       <section className="card">
-        <h2>Add Course</h2>
+        <h2>Courses</h2>
+        {courseList.length === 0 ? (
+          <p className="muted mb">No courses yet.</p>
+        ) : (
+          <div className="list mb">
+            {courseList.map((course) => (
+              <div key={course.id} className="list-item">
+                <div>
+                  <strong>{course.code}</strong>
+                  <p className="muted">{course.name}</p>
+                </div>
+                <div className="row">
+                  <span className="muted">
+                    {course.current_grade != null ? `${course.current_grade}%` : "—"}
+                    {course.target_grade != null ? ` → ${course.target_grade}%` : ""}
+                  </span>
+                  <button className="danger" onClick={() => deleteCourse(course)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <form className="grid grid-2" onSubmit={createCourse}>
           <div>
             <label>Course name</label>
@@ -205,7 +248,7 @@ export default function TasksPage() {
               <option value="">Choose a course</option>
               {courseList.map((course) => (
                 <option key={course.id} value={course.id}>
-                  {course.code} - {course.name}
+                  {course.code} · {course.name}
                 </option>
               ))}
             </select>
@@ -217,6 +260,7 @@ export default function TasksPage() {
               onChange={(event) =>
                 setAssignmentForm({ ...assignmentForm, title: event.target.value })
               }
+              placeholder="e.g. Problem set 7"
               required
             />
           </div>
@@ -311,7 +355,7 @@ export default function TasksPage() {
                     <option value="in_progress">in_progress</option>
                     <option value="done">done</option>
                   </select>
-                  <button className="danger" onClick={() => deleteAssignment(assignment.id)}>
+                  <button className="danger" onClick={() => deleteAssignment(assignment)}>
                     Delete
                   </button>
                 </div>
@@ -321,5 +365,5 @@ export default function TasksPage() {
         )}
       </section>
     </div>
-  )
+  );
 }

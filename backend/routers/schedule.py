@@ -6,13 +6,13 @@ user and the service modules in services/.
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from database import get_db
-from models import User
+from models import Event, User
 from schemas import (
     EmergencyResult,
     EventRead,
@@ -21,7 +21,7 @@ from schemas import (
     _strip_tz,
 )
 from services.priority import prioritize
-from services.rescheduler import create_emergency
+from services.rescheduler import create_emergency, undo_emergency
 from services.scheduler import generate_schedule
 
 router = APIRouter(prefix="/api", tags=["features"])
@@ -72,4 +72,33 @@ def create_emergency_block(
         emergency=EventRead.model_validate(emergency),
         missed=[EventRead.model_validate(m) for m in missed],
         rescheduled=[EventRead.model_validate(r) for r in rescheduled],
+    )
+
+
+class UndoEmergencyResult(BaseModel):
+    restored: list[EventRead]
+    removed: list[EventRead]
+
+
+@router.post("/emergency/{event_id}/undo", response_model=UndoEmergencyResult)
+def undo_emergency_block(
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Reverse an emergency block: restore missed study sessions and remove
+    any rescheduled replacements. Deleting an emergency from the calendar
+    uses this so the calendar is restored to its pre-emergency state.
+    """
+    emergency = (
+        db.query(Event)
+        .filter(Event.id == event_id, Event.user_id == current_user.id)
+        .first()
+    )
+    if not emergency or emergency.type != "emergency":
+        raise HTTPException(status_code=404, detail="Emergency block not found")
+    restored, removed = undo_emergency(current_user, db, emergency)
+    return UndoEmergencyResult(
+        restored=[EventRead.model_validate(r) for r in restored],
+        removed=[EventRead.model_validate(r) for r in removed],
     )

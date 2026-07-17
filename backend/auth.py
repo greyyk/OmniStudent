@@ -23,7 +23,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 def hash_password(password: str) -> str:
     # bcrypt has a 72-byte limit; truncate defensively.
-    return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt()).decode("utf-8")
+    return bcrypt.hashpw(password.encode("utf-8")[:72], bcrypt.gensalt()).decode(
+        "utf-8"
+    )
 
 
 def verify_password(plain: str, hashed: str) -> bool:
@@ -51,7 +53,9 @@ def register(user_in: UserCreate, db: Session) -> Token:
     db.commit()
     db.refresh(user)
     # Auto-login: return a token so the frontend is logged in immediately.
-    return Token(access_token=create_access_token(user), user=UserRead.model_validate(user))
+    return Token(
+        access_token=create_access_token(user), user=UserRead.model_validate(user)
+    )
 
 
 def login(login_in: UserLogin, db: Session) -> Token:
@@ -75,7 +79,9 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
         user_id = payload.get("sub")
         if user_id is None:
             raise credentials_exc

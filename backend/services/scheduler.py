@@ -30,6 +30,29 @@ def generate_schedule(user: User, db: Session, days_ahead: int = 7) -> list[Even
         now = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     horizon = now + timedelta(days=days_ahead)
 
+    # Existing study time per assignment title (manual + system_generated,
+    # any status). Used to skip assignments whose remaining need is
+    # already satisfied, so re-running the scheduler (or cancelling and
+    # regenerating) never duplicates study sessions for the same work.
+    existing_by_title: dict[str, float] = {}
+    for e in (
+        db.query(Event)
+        .filter(
+            Event.user_id == user.id,
+            Event.type == "study",
+            Event.start <= horizon,
+            Event.end >= now,
+        )
+        .all()
+    ):
+        if e.title.startswith("Study: "):
+            key = e.title[len("Study: "):]
+        else:
+            key = e.title
+        existing_by_title[key] = existing_by_title.get(key, 0.0) + (
+            (e.end - e.start).total_seconds() / 3600.0
+        )
+
     events = (
         db.query(Event)
         .filter(
@@ -53,10 +76,19 @@ def generate_schedule(user: User, db: Session, days_ahead: int = 7) -> list[Even
     )
 
     created: list[Event] = []
-    gap_idx = 0
     for assignment in assignments:
-        hours_left = assignment.estimated_hours
+        # Skip scheduling entirely if existing study time already meets or
+        # exceeds the estimate. Also stops the same assignment from being
+        # re-added if a previous schedule was deleted/cancelled and the
+        # user re-clicks generate.
+        hours_left = max(
+            0.0,
+            assignment.estimated_hours - existing_by_title.get(assignment.title, 0.0),
+        )
+        if hours_left <= 0:
+            continue
         due = assignment.due_date
+        gap_idx = 0
         while hours_left > 0 and gap_idx < len(free_gaps):
             gap_start, gap_end = free_gaps[gap_idx]
             if gap_start >= due:

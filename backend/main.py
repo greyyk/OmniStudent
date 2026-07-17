@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from database import Base, engine
+
 # Import models so create_all() sees them.
 import models  # noqa: F401
 from routers import assignments, auth, courses, dashboard, events, schedule
