@@ -64,10 +64,4 @@ export const features = {
   dashboard: () => client.get("/dashboard"),
 };
 
-// `tasks` is an alias the task board uses for the prioritized view.
-export const tasks = {
-  getAll: () => client.get("/tasks/prioritized"),
-  prioritized: () => client.get("/tasks/prioritized"),
-};
-
 export default client;

@@ -29,7 +29,7 @@ Built for CSCI3300 Software Engineering (University of North Georgia), Dr. Jason
 |-------|-----------|
 | Frontend | React (Vite), React Router, Axios |
 | Backend | Python, FastAPI, SQLAlchemy |
-| Database | SQLite |
+| Database | SQLite (default) / PostgreSQL (configurable) |
 | Auth | JWT tokens, bcrypt password hashing |
 
 ## Getting Started
@@ -76,9 +76,13 @@ Creates a demo account (`demo@omnistudent.app` / `demo1234`) with sample courses
 |--------|------|-------------|
 | POST | `/api/auth/register` | Create an account |
 | POST | `/api/auth/login` | Log in |
+| GET | `/api/auth/me` | Get the logged-in user |
 | GET/POST | `/api/courses` | List / create courses |
+| PUT/DELETE | `/api/courses/{id}` | Update / delete a course |
 | GET/POST | `/api/assignments` | List / create assignments |
+| PUT/DELETE | `/api/assignments/{id}` | Update / delete an assignment |
 | GET/POST | `/api/events` | List / create calendar events |
+| PUT/DELETE | `/api/events/{id}` | Update / delete an event |
 | POST | `/api/schedule/generate` | Generate a study schedule |
 | GET | `/api/tasks/prioritized` | Get the priority task board |
 | POST | `/api/emergency/create` | Create an emergency block + reschedule |
