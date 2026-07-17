@@ -119,12 +119,20 @@ def undo_emergency(user: User, db: Session, emergency: Event) -> tuple[list[Even
     replacement_titles = [
         f"{m.title}{RESCHEDULED_SUFFIX}" for m in
         db.query(Event).filter(
+    missed = (
+        db.query(Event)
+        .filter(
             Event.user_id == user.id,
             Event.type == "study",
             Event.status == "missed",
-        ).all()
-    ]
+            Event.start < emergency.end,
+            Event.end > emergency.start,
+        )
+        .all()
+    )
+    replacement_titles = [f"{m.title}{RESCHEDULED_SUFFIX}" for m in missed]
 
+    horizon = emergency.end + timedelta(days=7)
     removed: list[Event] = []
     if replacement_titles:
         replacements = (
@@ -134,33 +142,23 @@ def undo_emergency(user: User, db: Session, emergency: Event) -> tuple[list[Even
                 Event.type == "study",
                 Event.system_generated == True,  # noqa: E712
                 Event.title.in_(replacement_titles),
+                Event.start >= emergency.end,
+                Event.start <= horizon,
             )
             .all()
         )
-        for r in replacements:
-            removed.append(r)
-        # Bulk delete in one statement
+        removed = [EventRead.model_validate(r) for r in replacements]
         if replacements:
-            for r in replacements:
-                db.delete(r)
-
     # Restore the missed sessions this emergency produced. Heuristic:
     # any "missed" study session for this user whose title is a prefix
     # of one of the removed (or never-replaced) originals goes back to
     # scheduled. To avoid restoring orphaned sessions from a different
     # emergency, scope to those whose start falls within the emergency's
     # window.
-    missed = (
-        db.query(Event)
-        .filter(
-            Event.user_id == user.id,
-            Event.type == "study",
-            Event.status == "missed",
-            Event.start >= emergency.start,
-            Event.end <= emergency.end + timedelta(days=8),
-        )
-        .all()
-    )
+            db.query(Event).filter(
+                Event.id.in_([r.id for r in replacements])
+            ).delete(synchronize_session=False)
+
     restored: list[Event] = []
     for m in missed:
         m.status = "scheduled"

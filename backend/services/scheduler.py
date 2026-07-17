@@ -37,7 +37,12 @@ def generate_schedule(user: User, db: Session, days_ahead: int = 7) -> list[Even
     existing_by_title: dict[str, float] = {}
     for e in (
         db.query(Event)
-        .filter(Event.user_id == user.id, Event.type == "study")
+        .filter(
+            Event.user_id == user.id,
+            Event.type == "study",
+            Event.start <= horizon,
+            Event.end >= now,
+        )
         .all()
     ):
         if e.title.startswith("Study: "):
