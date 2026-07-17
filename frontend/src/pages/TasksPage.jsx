@@ -1,76 +1,209 @@
 // Tasks page: manage courses and assignments, and view the priority task board.
 import { useEffect, useState } from "react";
-import {
-  courses as coursesApi,
-  assignments as assignmentsApi,
-} from "../api/client";
-import TaskBoard from "../components/TaskBoard";
+import { assignments as assignmentsApi, courses as coursesApi } from "../api/client";
+import PriorityTaskBoard from "../components/PriorityTaskBoard";
 
-function CoursesPanel({ courses, onAdd, onDelete, onError }) {
-  const [form, setForm] = useState({
-    name: "",
-    code: "",
-    current_grade: "",
-    target_grade: "",
+const emptyCourse = {
+  name: "",
+  code: "",
+  current_grade: "",
+  target_grade: "",
+};
+
+const emptyAssignment = {
+  course_id: "",
+  title: "",
+  description: "",
+  due_date: "",
+  estimated_hours: "1",
+  grade_weight: "10",
+  status: "todo",
+};
+
+function optionalNumber(value) {
+  return value === "" ? null : Number(value);
+}
+
+function dateLabel(value) {
+  return new Date(value).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
-  function set(field) {
-    return (e) => setForm({ ...form, [field]: e.target.value });
-  }
-  async function submit(e) {
-    e.preventDefault();
-    onError("");
+}
+
+export default function TasksPage() {
+  const [courseList, setCourseList] = useState([]);
+  const [assignmentList, setAssignmentList] = useState([]);
+  const [courseForm, setCourseForm] = useState(emptyCourse);
+  const [assignmentForm, setAssignmentForm] = useState(emptyAssignment);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  async function loadData() {
     try {
-      await onAdd({
-        name: form.name,
-        code: form.code,
-        current_grade: form.current_grade ? Number(form.current_grade) : null,
-        target_grade: form.target_grade ? Number(form.target_grade) : null,
-      });
-      setForm({ name: "", code: "", current_grade: "", target_grade: "" });
-    } catch (err) {
-      onError(err.response?.data?.detail || "Could not add course");
+      setLoading(true);
+      setError("");
+      const [coursesResult, assignmentsResult] = await Promise.all([
+        coursesApi.list(),
+        assignmentsApi.list(),
+      ]);
+      setCourseList(coursesResult.data);
+      setAssignmentList(assignmentsResult.data);
+      setAssignmentForm((form) => ({
+        ...form,
+        course_id: form.course_id || String(coursesResult.data[0]?.id || ""),
+      }));
+    } catch {
+      setError("Could not load courses and assignments");
+    } finally {
+      setLoading(false);
     }
   }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  function courseName(courseId) {
+    const course = courseList.find((item) => item.id === courseId);
+    return course ? `${course.code} · ${course.name}` : "Course";
+  }
+
+  async function createCourse(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await coursesApi.create({
+        name: courseForm.name,
+        code: courseForm.code,
+        current_grade: optionalNumber(courseForm.current_grade),
+        target_grade: optionalNumber(courseForm.target_grade),
+      });
+      setCourseForm(emptyCourse);
+      await loadData();
+      setRefreshKey((key) => key + 1);
+    } catch {
+      setError("Could not create course");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteCourse(id) {
+    try {
+      await coursesApi.remove(id);
+      await loadData();
+      setRefreshKey((key) => key + 1);
+    } catch {
+      setError("Could not delete course");
+    }
+  }
+
+  async function createAssignment(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    if (!assignmentForm.course_id) {
+      setError("Add a course before creating assignments.");
+      setSaving(false);
+      return;
+    }
+    try {
+      await assignmentsApi.create({
+        ...assignmentForm,
+        course_id: Number(assignmentForm.course_id),
+        estimated_hours: Number(assignmentForm.estimated_hours),
+        grade_weight: Number(assignmentForm.grade_weight),
+      });
+      setAssignmentForm({
+        ...emptyAssignment,
+        course_id: assignmentForm.course_id,
+      });
+      await loadData();
+      setRefreshKey((key) => key + 1);
+    } catch {
+      setError("Could not create assignment");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function changeStatus(assignment, status) {
+    try {
+      await assignmentsApi.update(assignment.id, { status });
+      await loadData();
+      setRefreshKey((key) => key + 1);
+    } catch {
+      setError("Could not update assignment");
+    }
+  }
+
+  async function deleteAssignment(id) {
+    try {
+      await assignmentsApi.remove(id);
+      setAssignmentList((list) => list.filter((item) => item.id !== id));
+      setRefreshKey((key) => key + 1);
+    } catch {
+      setError("Could not delete assignment");
+    }
+  }
+
+  if (loading) return <div className="page">Loading tasks...</div>;
+
   return (
-    <div className="card">
-      <h2 style={{ fontSize: "1rem", marginBottom: "0.75rem" }}>Courses</h2>
-      {courses.length === 0 ? (
-        <p className="muted mb">No courses yet.</p>
-      ) : (
-        <ul className="event-list mb">
-          {courses.map((c) => (
-            <li key={c.id} className="event ev-other">
-              <span className="event-title">
-                {c.code} · {c.name}
-              </span>
-              <span className="event-type">
-                {c.current_grade != null ? `${c.current_grade}%` : "—"}
-                {c.target_grade != null ? ` → ${c.target_grade}%` : ""}
-              </span>
-              <button className="danger" onClick={() => onDelete(c.id)}>
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form onSubmit={submit} className="col">
-        <div className="grid grid-2">
+    <div className="page">
+      <h1>Tasks</h1>
+      {error && <p className="error mb">{error}</p>}
+
+      <section className="card">
+        <h2>Courses</h2>
+        {courseList.length === 0 ? (
+          <p className="muted mb">No courses yet.</p>
+        ) : (
+          <div className="list mb">
+            {courseList.map((course) => (
+              <div key={course.id} className="list-item">
+                <div>
+                  <strong>{course.code}</strong>
+                  <p className="muted">{course.name}</p>
+                </div>
+                <div className="row">
+                  <span className="muted">
+                    {course.current_grade != null ? `${course.current_grade}%` : "—"}
+                    {course.target_grade != null ? ` → ${course.target_grade}%` : ""}
+                  </span>
+                  <button className="danger" onClick={() => deleteCourse(course.id)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <form className="grid grid-2" onSubmit={createCourse}>
           <div>
-            <label>Code</label>
+            <label>Course name</label>
             <input
-              value={form.code}
-              onChange={set("code")}
-              placeholder="CSCI 3300"
+              value={courseForm.name}
+              onChange={(event) =>
+                setCourseForm({ ...courseForm, name: event.target.value })
+              }
               required
             />
           </div>
           <div>
-            <label>Name</label>
+            <label>Course code</label>
             <input
-              value={form.name}
-              onChange={set("name")}
-              placeholder="Software Engineering"
+              value={courseForm.code}
+              onChange={(event) =>
+                setCourseForm({ ...courseForm, code: event.target.value })
+              }
               required
             />
           </div>
@@ -78,113 +211,42 @@ function CoursesPanel({ courses, onAdd, onDelete, onError }) {
             <label>Current grade</label>
             <input
               type="number"
-              min="0"
-              max="100"
-              value={form.current_grade}
-              onChange={set("current_grade")}
+              value={courseForm.current_grade}
+              onChange={(event) =>
+                setCourseForm({ ...courseForm, current_grade: event.target.value })
+              }
             />
           </div>
           <div>
             <label>Target grade</label>
             <input
               type="number"
-              min="0"
-              max="100"
-              value={form.target_grade}
-              onChange={set("target_grade")}
+              value={courseForm.target_grade}
+              onChange={(event) =>
+                setCourseForm({ ...courseForm, target_grade: event.target.value })
+              }
             />
           </div>
-        </div>
-        <div>
-          <button type="submit">Add course</button>
-        </div>
-      </form>
-    </div>
-  );
-}
+          <button disabled={saving}>Save course</button>
+        </form>
+      </section>
 
-function AssignmentsPanel({ courses, assignments, onAdd, onDelete, onError }) {
-  const [form, setForm] = useState({
-    course_id: courses[0]?.id || "",
-    title: "",
-    description: "",
-    due_date: "",
-    estimated_hours: "1",
-    grade_weight: "10",
-  });
-  // If the default course disappears, reset.
-  useEffect(() => {
-    if (!courses.find((c) => c.id === Number(form.course_id)) && courses[0]) {
-      setForm((f) => ({ ...f, course_id: courses[0].id }));
-    }
-  }, [courses, form.course_id]);
-
-  function set(field) {
-    return (e) => setForm({ ...form, [field]: e.target.value });
-  }
-  async function submit(e) {
-    e.preventDefault();
-    onError("");
-    if (!form.course_id) {
-      onError("Add a course before creating assignments.");
-      return;
-    }
-    try {
-      await onAdd({
-        course_id: Number(form.course_id),
-        title: form.title,
-        description: form.description || null,
-        due_date: form.due_date,
-        estimated_hours: Number(form.estimated_hours),
-        grade_weight: Number(form.grade_weight),
-      });
-      setForm({
-        ...form,
-        title: "",
-        description: "",
-        due_date: "",
-      });
-    } catch (err) {
-      onError(err.response?.data?.detail || "Could not add assignment");
-    }
-  }
-
-  const courseName = (id) => {
-    const c = courses.find((c) => c.id === id);
-    return c ? `${c.code} · ${c.name}` : `Course #${id}`;
-  };
-
-  return (
-    <div className="card">
-      <h2 style={{ fontSize: "1rem", marginBottom: "0.75rem" }}>Assignments</h2>
-      {courses.length === 0 ? (
-        <p className="muted mb">Add a course first to create assignments.</p>
-      ) : assignments.length === 0 ? (
-        <p className="muted mb">No assignments yet.</p>
-      ) : (
-        <ul className="event-list mb">
-          {assignments.map((a) => (
-            <li key={a.id} className="event ev-other">
-              <span className="event-title">{a.title}</span>
-              <span className="event-time">
-                {new Date(a.due_date).toLocaleString()}
-              </span>
-              <span className="event-type">{courseName(a.course_id)}</span>
-              <button className="danger" onClick={() => onDelete(a.id)}>
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form onSubmit={submit} className="col">
-        <div className="grid grid-2">
+      <section className="card">
+        <h2>Add Assignment</h2>
+        <form className="grid grid-2" onSubmit={createAssignment}>
           <div>
             <label>Course</label>
-            <select value={form.course_id} onChange={set("course_id")}>
-              {courses.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.code} · {c.name}
+            <select
+              value={assignmentForm.course_id}
+              onChange={(event) =>
+                setAssignmentForm({ ...assignmentForm, course_id: event.target.value })
+              }
+              required
+            >
+              <option value="">Choose a course</option>
+              {courseList.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.code} · {course.name}
                 </option>
               ))}
             </select>
@@ -192,121 +254,114 @@ function AssignmentsPanel({ courses, assignments, onAdd, onDelete, onError }) {
           <div>
             <label>Title</label>
             <input
-              value={form.title}
-              onChange={set("title")}
+              value={assignmentForm.title}
+              onChange={(event) =>
+                setAssignmentForm({ ...assignmentForm, title: event.target.value })
+              }
               placeholder="e.g. Problem set 7"
               required
             />
           </div>
           <div>
-            <label>Due</label>
+            <label>Due date</label>
             <input
               type="datetime-local"
-              value={form.due_date}
-              onChange={set("due_date")}
+              value={assignmentForm.due_date}
+              onChange={(event) =>
+                setAssignmentForm({ ...assignmentForm, due_date: event.target.value })
+              }
               required
             />
+          </div>
+          <div>
+            <label>Status</label>
+            <select
+              value={assignmentForm.status}
+              onChange={(event) =>
+                setAssignmentForm({ ...assignmentForm, status: event.target.value })
+              }
+            >
+              <option value="todo">todo</option>
+              <option value="in_progress">in_progress</option>
+              <option value="done">done</option>
+            </select>
           </div>
           <div>
             <label>Estimated hours</label>
             <input
               type="number"
-              min="0.5"
-              step="0.5"
-              value={form.estimated_hours}
-              onChange={set("estimated_hours")}
+              min="0.25"
+              step="0.25"
+              value={assignmentForm.estimated_hours}
+              onChange={(event) =>
+                setAssignmentForm({
+                  ...assignmentForm,
+                  estimated_hours: event.target.value,
+                })
+              }
+              required
             />
           </div>
           <div>
-            <label>Grade weight (%)</label>
+            <label>Grade weight</label>
             <input
               type="number"
               min="0"
-              max="100"
-              value={form.grade_weight}
-              onChange={set("grade_weight")}
+              step="1"
+              value={assignmentForm.grade_weight}
+              onChange={(event) =>
+                setAssignmentForm({ ...assignmentForm, grade_weight: event.target.value })
+              }
+              required
             />
           </div>
-        </div>
-        <div>
-          <button type="submit">Add assignment</button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-export default function TasksPage() {
-  const [courseList, setCourseList] = useState([]);
-  const [assignmentList, setAssignmentList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  function load() {
-    setLoading(true);
-    setError("");
-    Promise.all([coursesApi.list(), assignmentsApi.list()])
-      .then(([cRes, aRes]) => {
-        setCourseList(cRes.data);
-        setAssignmentList(aRes.data);
-      })
-      .catch(() => setError("Could not load tasks"))
-      .finally(() => setLoading(false));
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
-
-  async function addCourse(payload) {
-    await coursesApi.create(payload);
-    load();
-  }
-  async function deleteCourse(id) {
-    await coursesApi.remove(id);
-    load();
-  }
-  async function addAssignment(payload) {
-    await assignmentsApi.create(payload);
-    load();
-  }
-  async function deleteAssignment(id) {
-    await assignmentsApi.remove(id);
-    load();
-  }
-
-  return (
-    <div className="page">
-      <h1>Tasks</h1>
-
-      {error && <p className="error mb">{error}</p>}
-      {loading ? (
-        <p className="muted">Loading…</p>
-      ) : (
-        <>
-          <div className="card">
-            <h2 style={{ fontSize: "1rem", marginBottom: "0.75rem" }}>
-              Priority task board
-            </h2>
-            <TaskBoard />
+          <div className="grid-wide">
+            <label>Description</label>
+            <textarea
+              value={assignmentForm.description}
+              onChange={(event) =>
+                setAssignmentForm({ ...assignmentForm, description: event.target.value })
+              }
+              rows="3"
+            />
           </div>
+          <button disabled={saving || courseList.length === 0}>Save assignment</button>
+        </form>
+      </section>
 
-          <CoursesPanel
-            courses={courseList}
-            onAdd={addCourse}
-            onDelete={deleteCourse}
-            onError={setError}
-          />
+      <PriorityTaskBoard refreshKey={refreshKey} />
 
-          <AssignmentsPanel
-            courses={courseList}
-            assignments={assignmentList}
-            onAdd={addAssignment}
-            onDelete={deleteAssignment}
-            onError={setError}
-          />
-        </>
-      )}
+      <section className="card">
+        <h2>All Assignments</h2>
+        {assignmentList.length === 0 ? (
+          <p className="muted">No assignments yet.</p>
+        ) : (
+          <div className="list">
+            {assignmentList.map((assignment) => (
+              <div key={assignment.id} className="list-item">
+                <div>
+                  <strong>{assignment.title}</strong>
+                  <p className="muted">{courseName(assignment.course_id)}</p>
+                  <p className="muted">Due {dateLabel(assignment.due_date)}</p>
+                </div>
+                <div className="row">
+                  <select
+                    value={assignment.status}
+                    onChange={(event) => changeStatus(assignment, event.target.value)}
+                  >
+                    <option value="todo">todo</option>
+                    <option value="in_progress">in_progress</option>
+                    <option value="done">done</option>
+                  </select>
+                  <button className="danger" onClick={() => deleteAssignment(assignment.id)}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

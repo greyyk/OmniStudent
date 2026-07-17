@@ -7,12 +7,10 @@ import Calendar from "../components/Calendar";
 const EVENT_TYPES = ["class", "work", "personal"];
 
 function EmergencyModal({ onClose }) {
-  // datetime-local needs a value; prefill a 1-hour block starting now.
   function localNow(offsetHours = 0) {
     const d = new Date();
     d.setMinutes(0, 0, 0);
     d.setHours(d.getHours() + offsetHours);
-    // toISOString gives UTC; slice the "Z" for datetime-local (local time).
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
       .toISOString()
       .slice(0, 16);
@@ -141,8 +139,6 @@ export default function CalendarPage() {
   const [error, setError] = useState("");
   const [showEmergency, setShowEmergency] = useState(false);
   const [genMsg, setGenMsg] = useState("");
-
-  // Add-event form state.
   const [form, setForm] = useState({
     title: "",
     type: "class",

@@ -1,7 +1,6 @@
 // Dashboard: upcoming assignments, this week's schedule, courses, and study stats.
 import { useEffect, useState } from "react";
 import { features } from "../api/client";
-import Calendar from "../components/Calendar";
 
 function fmtDate(iso) {
   if (!iso) return "";
@@ -13,6 +12,20 @@ function fmtDate(iso) {
   if (diff === 1) return "Tomorrow";
   if (diff > 1 && diff < 7) return `In ${diff} days`;
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function dateLabel(value) {
+  return new Date(value).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function courseName(courses, courseId) {
+  const course = courses.find((item) => item.id === courseId);
+  return course ? `${course.code} · ${course.name}` : "Course";
 }
 
 export default function DashboardPage() {
@@ -32,12 +45,14 @@ export default function DashboardPage() {
     load();
   }, []);
 
-  if (error)
+  if (error) {
     return (
       <div className="page">
         <p className="error">{error}</p>
       </div>
     );
+  }
+
   if (!data) return <div className="page">Loading…</div>;
 
   const studyHours = Math.round((data.study_minutes_this_week / 60) * 10) / 10;
@@ -46,69 +61,84 @@ export default function DashboardPage() {
     <div className="page">
       <h1>Dashboard</h1>
 
-      <div className="stat-grid">
-        <div className="stat">
-          <div className="label">Scheduled study this week</div>
-          <div className="value">{studyHours}h</div>
-        </div>
-        <div className="stat">
-          <div className="label">Upcoming assignments</div>
-          <div className="value">{data.upcoming_assignments.length}</div>
-        </div>
-        <div className="stat">
-          <div className="label">Courses</div>
-          <div className="value">{data.courses.length}</div>
-        </div>
+      <div className="grid grid-3 mb">
+        <section className="card stat-card">
+          <span className="muted">Courses</span>
+          <strong>{data.courses.length}</strong>
+        </section>
+        <section className="card stat-card">
+          <span className="muted">Upcoming assignments</span>
+          <strong>{data.upcoming_assignments.length}</strong>
+        </section>
+        <section className="card stat-card">
+          <span className="muted">Scheduled study this week</span>
+          <strong>{studyHours}h</strong>
+        </section>
       </div>
 
       <div className="grid grid-2">
-        <div className="card">
-          <h2 style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>
-            Upcoming assignments
-          </h2>
+        <section className="card">
+          <h2>Upcoming Assignments</h2>
           {data.upcoming_assignments.length === 0 ? (
-            <p className="muted">Nothing due. You're all caught up.</p>
+            <p className="muted">Nothing due. You&apos;re all caught up.</p>
           ) : (
-            <ul className="event-list">
-              {data.upcoming_assignments.map((a) => (
-                <li key={a.id} className="event ev-other">
-                  <span className="event-title">{a.title}</span>
-                  <span className="event-time">{fmtDate(a.due_date)}</span>
-                </li>
+            <div className="list">
+              {data.upcoming_assignments.map((assignment) => (
+                <div key={assignment.id} className="list-item">
+                  <div>
+                    <strong>{assignment.title}</strong>
+                    <p className="muted">
+                      {courseName(data.courses, assignment.course_id)}
+                    </p>
+                  </div>
+                  <span className="muted">{fmtDate(assignment.due_date)}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
-        </div>
+        </section>
 
-        <div className="card">
-          <h2 style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>Courses</h2>
-          {data.courses.length === 0 ? (
-            <p className="muted">No courses yet. Add some on the Tasks page.</p>
+        <section className="card">
+          <h2>This Week</h2>
+          {data.todays_events.length === 0 ? (
+            <p className="muted">No events scheduled this week.</p>
           ) : (
-            <ul className="event-list">
-              {data.courses.map((c) => (
-                <li key={c.id} className="event ev-other">
-                  <span className="event-title">
-                    {c.code} · {c.name}
-                  </span>
-                  <span className="event-type">
-                    {c.current_grade != null ? `${c.current_grade}%` : "—"}
-                    {c.target_grade != null ? ` → ${c.target_grade}%` : ""}
-                  </span>
-                </li>
+            <div className="list">
+              {data.todays_events.map((event) => (
+                <div key={event.id} className={`event-card ${event.type}`}>
+                  <div>
+                    <strong>{event.title}</strong>
+                    <p className="muted">{dateLabel(event.start)}</p>
+                  </div>
+                  <span className={`badge ${event.type}`}>{event.type}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
-        </div>
+        </section>
       </div>
 
-      <div className="card" style={{ marginTop: "1rem" }}>
-        <h2 style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>This week</h2>
-        <Calendar
-          events={data.todays_events}
-          emptyMessage="No events scheduled this week."
-        />
-      </div>
+      <section className="card">
+        <h2>Courses</h2>
+        {data.courses.length === 0 ? (
+          <p className="muted">No courses yet. Add some on the Tasks page.</p>
+        ) : (
+          <div className="list">
+            {data.courses.map((course) => (
+              <div key={course.id} className="list-item">
+                <div>
+                  <strong>{course.code}</strong>
+                  <p className="muted">{course.name}</p>
+                </div>
+                <span className="muted">
+                  {course.current_grade != null ? `${course.current_grade}%` : "—"}
+                  {course.target_grade != null ? ` → ${course.target_grade}%` : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
