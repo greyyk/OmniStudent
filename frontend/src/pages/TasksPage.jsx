@@ -148,7 +148,9 @@ export default function TasksPage() {
     if (!confirm(`Delete assignment "${assignment.title}"?`)) return;
     try {
       await assignmentsApi.remove(assignment.id);
-      setAssignmentList((list) => list.filter((item) => item.id !== id));
+      setAssignmentList((list) =>
+        list.filter((item) => item.id !== assignment.id)
+      );
       setRefreshKey((key) => key + 1);
     } catch {
       setError("Could not delete assignment");
