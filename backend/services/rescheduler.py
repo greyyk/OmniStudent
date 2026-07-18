@@ -116,9 +116,6 @@ def undo_emergency(user: User, db: Session, emergency: Event) -> tuple[list[Even
     # Find every "(rescheduled)" event for this user that was created
     # within the same horizon window the emergency covered. We don't
     # have a direct FK, so use title suffix + ownership + type.
-    replacement_titles = [
-        f"{m.title}{RESCHEDULED_SUFFIX}" for m in
-        db.query(Event).filter(
     missed = (
         db.query(Event)
         .filter(
