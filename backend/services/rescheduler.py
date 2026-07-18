@@ -112,6 +112,9 @@ def undo_emergency(user: User, db: Session, emergency: Event) -> tuple[list[Even
 
     Returns (restored, removed_replacements).
     """
+    # Find every "(rescheduled)" event for this user that was created
+    # within the same horizon window the emergency covered. We don't
+    # have a direct FK, so use title suffix + ownership + type.
     missed = (
         db.query(Event)
         .filter(
