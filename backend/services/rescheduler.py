@@ -14,7 +14,6 @@ from datetime import timedelta
 from sqlalchemy.orm import Session
 
 from models import Event, User
-from schemas import EventRead
 from services.scheduler import find_free_slot
 
 
@@ -132,29 +131,20 @@ def undo_emergency(user: User, db: Session, emergency: Event) -> tuple[list[Even
     horizon = emergency.end + timedelta(days=7)
     removed: list[Event] = []
     if replacement_titles:
-        replacements = (
+        removed = (
             db.query(Event)
             .filter(
                 Event.user_id == user.id,
                 Event.type == "study",
-                Event.system_generated == True,  # noqa: E712
+                Event.system_generated.is_(True),
                 Event.title.in_(replacement_titles),
                 Event.start >= emergency.end,
                 Event.start <= horizon,
             )
             .all()
         )
-        removed = [EventRead.model_validate(r) for r in replacements]
-        if replacements:
-    # Restore the missed sessions this emergency produced. Heuristic:
-    # any "missed" study session for this user whose title is a prefix
-    # of one of the removed (or never-replaced) originals goes back to
-    # scheduled. To avoid restoring orphaned sessions from a different
-    # emergency, scope to those whose start falls within the emergency's
-    # window.
-            db.query(Event).filter(
-                Event.id.in_([r.id for r in replacements])
-            ).delete(synchronize_session=False)
+        for replacement in removed:
+            db.delete(replacement)
 
     restored: list[Event] = []
     for m in missed:
